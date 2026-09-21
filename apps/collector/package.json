@@ -3,11 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "./dist/server.js",
+  "main": "./dist/src/server.js",
   "scripts": {
     "build": "tsc -b",
     "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js"
+    "start": "node dist/src/server.js",
+    "test": "tsc -b && node --test dist/test/*.test.js"
   },
   "dependencies": {
     "@pulse/core": "1.0.0",

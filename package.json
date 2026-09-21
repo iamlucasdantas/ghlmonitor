@@ -19,7 +19,10 @@
     "dev:collector": "npm run dev -w @pulse/collector",
     "dev:worker": "npm run dev -w @pulse/worker",
     "dev:web": "npm run dev -w apps/web",
-    "build:script": "esbuild tracking/pulse.js --minify --target=es2015 --outfile=tracking/pulse.min.js && node scripts/check-script-size.mjs"
+    "build:script": "esbuild tracking/pulse.js --minify --target=es2015 --outfile=tracking/pulse.min.js && node scripts/check-script-size.mjs",
+    "test:db": "scripts/test-db.sh",
+    "test:integration": "scripts/test-integration.sh",
+    "test:all": "npm test && npm run test:integration"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

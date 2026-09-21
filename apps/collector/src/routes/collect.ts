@@ -29,13 +29,11 @@ export async function collectRoutes(app: FastifyInstance): Promise<void> {
     const ip = clientIp(req.headers['x-forwarded-for'] as string | undefined, req.ip);
     if (!perIp.take(ip ?? 'unknown')) return reply.code(429).send();
 
-    const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
-    let batch: Batch;
-    try {
-      batch = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body as Batch);
-    } catch {
-      return reply.code(400).send();
-    }
+    // The signature covers the bytes the browser sent. Re-serialising the parsed body
+    // would reorder keys and change spacing, and the HMAC would never match.
+    const raw = req.rawBody ?? '';
+    const batch = req.body as Batch | undefined;
+    if (!batch || typeof batch !== 'object') return reply.code(400).send();
 
     const key = typeof batch.key === 'string' ? batch.key : '';
     if (!key) return reply.code(400).send();
@@ -76,7 +74,7 @@ export async function collectRoutes(app: FastifyInstance): Promise<void> {
         userAgent: req.headers['user-agent'] ?? null,
         events: clean,
       },
-      { ...defaultJobOpts, jobId: undefined },
+      defaultJobOpts,
     );
 
     return reply.code(204).send();

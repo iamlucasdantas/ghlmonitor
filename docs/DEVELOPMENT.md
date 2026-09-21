@@ -23,9 +23,16 @@ ficam criadas de todo jeito.
 ## Testes
 
 ```bash
-npm test          # engine de score, session builder, HMAC (27 casos) + tamanho do script
-scripts/test-db.sh $DATABASE_URL   # migrations + 28 asserts de RLS num banco descartável
+npm test                  # score, session builder, HMAC (27 casos) + limite do script
+npm run test:integration  # coletor de ponta a ponta com Postgres e Redis descartáveis
+npm run test:db           # migrations + 28 asserts de RLS
+npm run test:all          # unitários + integração
 ```
+
+`npm run test:integration` sobe um Postgres e um Redis temporários sozinho (ou usa o
+`DATABASE_URL` / `REDIS_URL` que você passar), aplica as migrations e exercita
+`/collect` de verdade: lote assinado, lote adulterado, token de outra agência, beacon
+sem assinatura e evento malformado.
 
 `scripts/test-db.sh` cria um banco temporário, aplica todas as migrations, carrega
 fixtures com duas agências e verifica os critérios de aceite do §16 — entre eles que um

@@ -17,6 +17,7 @@ interface Summary {
 export default async function AgencyDashboard() {
   const db = await supabaseServer();
   const me = await currentUser();
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
 
   /**
    * Every read here hits a pre-aggregated view. The sessions table is never queried
@@ -27,7 +28,11 @@ export default async function AgencyDashboard() {
     db.from('v_location_overview')
       .select('location_id, name, tier, score, drivers, delta_7d, last_seen_at, days_since_login, manager_name, plan_name, plan_value, niche')
       .order('score', { ascending: true, nullsFirst: false }),
-    db.from('v_metrics_daily').select('date, active_s, msgs_out, msgs_in'),
+    // Bounded on purpose: an unbounded scan across every sub-account's whole history
+    // is what would blow the 2s budget on a 500-sub-account agency (§12).
+    db.from('v_metrics_daily')
+      .select('date, active_s, msgs_out, msgs_in')
+      .gte('date', ninetyDaysAgo),
     db.from('v_recent_tier_changes').select('*').limit(12),
   ]);
 

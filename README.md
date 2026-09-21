@@ -64,13 +64,17 @@ acaba com a subconta de "10 sessões, 0 min".
 ## Testes
 
 ```bash
-npm test                          # 27 casos de score/sessão/HMAC + limite de 8 KB do script
-scripts/test-db.sh $DATABASE_URL  # migrations + 28 asserts de RLS
+npm test                  # 27 casos de score/sessão/HMAC + limite de 8 KB do script
+npm run test:integration  # 10 casos no /collect real, com Postgres e Redis descartáveis
+npm run test:db           # migrations + 28 asserts de RLS
 ```
 
 Os testes de RLS rodam as políticas de verdade e cobrem os critérios de aceite do §16:
 um manager não lê subconta não atribuída nem consultando a tabela direto, e desligar
-`billing` para um admin apaga o faturamento em toda leitura.
+`billing` para um admin apaga o faturamento em toda leitura. Os de integração sobem
+Postgres e Redis descartáveis e batem no `/collect` de verdade, inclusive verificando
+que a assinatura é conferida sobre os bytes recebidos — reserializar o corpo faz o
+teste falhar.
 
 ## Status
 

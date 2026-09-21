@@ -15,7 +15,10 @@ export default async function UsersTab({ params }: { params: Promise<{ id: strin
       .select('id, name, email, role, last_seen_at, last_city, last_ip, last_country, last_page, pending')
       .eq('location_id', id)
       .order('last_seen_at', { ascending: false, nullsFirst: false }),
-    db.from('v_sessions').select('ghl_user_id, active_s, pages').eq('location_id', id),
+    db.from('v_sessions')
+      .select('ghl_user_id, active_s, pages')
+      .eq('location_id', id)
+      .gte('started_at', new Date(Date.now() - 30 * 86_400_000).toISOString()),
   ]);
 
   const byUser = new Map<string, { sessions: number; activeS: number; pages: Map<string, number> }>();
