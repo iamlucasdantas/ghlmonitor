@@ -4,6 +4,7 @@ import { initGeoip } from './geoip.js';
 import { collectRoutes } from './routes/collect.js';
 import { healthRoutes } from './routes/health.js';
 import { oauthRoutes } from './routes/oauth.js';
+import { scriptRoutes } from './routes/script.js';
 import { webhookRoutes } from './routes/webhooks.js';
 
 declare module 'fastify' {
@@ -61,6 +62,7 @@ export async function buildServer() {
   await app.register(collectRoutes);
   await app.register(webhookRoutes);
   await app.register(oauthRoutes);
+  await app.register(scriptRoutes);
 
   return app;
 }

@@ -45,3 +45,21 @@ test('session uuids are deterministic and well-formed', () => {
   assert.notEqual(a, sessionUuid('loc2', 's1'));
   assert.match(a, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 });
+
+test('the browser signing path produces a header the collector accepts', async () => {
+  // Exactly what tracking/pulse.js does: HMAC-SHA256 over `${t}.${body}` with the
+  // agency's ingest token, hex-encoded, sent as `t=…,v1=…`. This test is what keeps
+  // the script and the collector from drifting apart on the wire format.
+  const token = 'agency-ingest-token';
+  const body = JSON.stringify({ key: 'agency-id', sentAt: 1, events: [] });
+  const t = Math.floor(Date.now() / 1000);
+
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(token),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(`${t}.${body}`));
+  const hex = [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('');
+
+  assert.deepEqual(verify(token, `t=${t},v1=${hex}`, body), { ok: true });
+});

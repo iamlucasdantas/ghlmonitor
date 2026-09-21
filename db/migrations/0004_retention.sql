@@ -1,8 +1,6 @@
 -- Pulse 0004 — retention & privacy jobs (PRD §12 LGPD/GDPR)
 -- events_raw purged at 90 days; session IPs anonymised to /24 at 180 days.
 
-create extension if not exists pg_cron;
-
 create or replace function purge_events_raw() returns int
 language plpgsql security definer set search_path = public as $$
 declare removed int;
@@ -44,5 +42,16 @@ begin
   delete from ghl_users where id = uid;
 end $$;
 
-select cron.schedule('pulse-purge-events-raw', '15 4 * * *', $$select purge_events_raw()$$);
-select cron.schedule('pulse-anonymize-ips',   '30 4 * * *', $$select anonymize_session_ips()$$);
+-- pg_cron only exists on a managed Postgres (Supabase enables it per project). The
+-- functions above are the contract; scheduling them is environment-specific, so a
+-- local database without the extension still gets a complete, testable schema.
+do $$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron;
+    perform cron.schedule('pulse-purge-events-raw', '15 4 * * *', $c$select purge_events_raw()$c$);
+    perform cron.schedule('pulse-anonymize-ips',    '30 4 * * *', $c$select anonymize_session_ips()$c$);
+  else
+    raise notice 'pg_cron not available: schedule purge_events_raw() and anonymize_session_ips() daily by other means';
+  end if;
+end $$;

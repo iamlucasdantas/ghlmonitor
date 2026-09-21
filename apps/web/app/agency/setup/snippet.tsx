@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 
-export function Snippet({ agencyId, collectorUrl }: { agencyId: string; collectorUrl: string }) {
+export function Snippet({
+  agencyId, token, collectorUrl,
+}: { agencyId: string; token: string; collectorUrl: string }) {
   const [copied, setCopied] = useState(false);
 
   const code = `<script>
   window.__PULSE__ = {
     key: '${agencyId}',
+    token: '${token}',
     endpoint: '${collectorUrl}/collect'
   };
 </script>

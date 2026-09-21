@@ -101,3 +101,19 @@ from tier_changes tc
 join locations l on l.id = tc.location_id
 where tc.changed_at >= now() - interval '7 days'
 order by tc.changed_at desc;
+
+-- The signing token ships inside the snippet, so it is not a secret from the browser —
+-- but it is still not something a manager needs. Only owners and admins can read it,
+-- which is why it lives behind a view instead of on `agencies` for everyone.
+create or replace view v_agency_setup with (security_invoker = true) as
+select
+  a.id,
+  a.name,
+  a.timezone,
+  a.install_status,
+  a.last_script_event_at,
+  a.last_sync_at,
+  a.last_sync_status,
+  case when current_role_in_agency() in ('owner','admin') then a.hmac_secret end as ingest_token
+from agencies a
+where a.id = current_agency_id();

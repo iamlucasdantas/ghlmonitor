@@ -9,8 +9,9 @@
   'use strict';
   var CFG = window.__PULSE__ || {};
   var ENDPOINT = CFG.endpoint || 'https://collect.pulse.app/collect';
-  var KEY = CFG.key || '';                 // agency ingest key (public: it ships in the page)
-  if (!KEY || window.__pulseLoaded) return;
+  var KEY = CFG.key || '';                 // agency id, used to look the agency up
+  var TOKEN = CFG.token || '';             // signing key (public: it ships in the page)
+  if (!KEY || !TOKEN || window.__pulseLoaded) return;
   window.__pulseLoaded = true;
 
   var HEARTBEAT_MS = 30000;
@@ -111,17 +112,17 @@
     if (queue.length >= MAX_QUEUE) flush(false);
   }
 
-  /* HMAC over the batch (PRD §6.1). The key travels to the browser inside the
-     snippet, so this is integrity, not secrecy: it stops a stray script or a bored
-     user from POSTing hand-written batches, and it scopes anything forged to the one
-     agency the key belongs to. The collector still checks that every locationId in
-     the batch belongs to that agency and rate-limits by IP. */
+  /* HMAC over the batch (PRD §6.1), signed with TOKEN. That token travels to the
+     browser inside the snippet, so this is integrity, not secrecy: it stops a stray
+     script or a bored user from POSTing hand-written batches, and it scopes anything
+     forged to the one agency it belongs to. The collector still checks that every
+     locationId in the batch belongs to that agency, and rate-limits by IP. */
   var keyPromise = null;
   function cryptoKey() {
     if (!keyPromise) {
       if (!window.crypto || !crypto.subtle || !window.TextEncoder) return null;
       keyPromise = crypto.subtle.importKey(
-        'raw', new TextEncoder().encode(KEY),
+        'raw', new TextEncoder().encode(TOKEN),
         { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
       );
     }

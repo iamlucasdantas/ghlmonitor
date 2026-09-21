@@ -10,8 +10,8 @@ export default async function SetupPage() {
   const me = await currentUser();
 
   const { data: agency } = await db
-    .from('agencies')
-    .select('id, name, install_status, last_script_event_at, last_sync_at, last_sync_status, timezone')
+    .from('v_agency_setup')
+    .select('id, name, install_status, last_script_event_at, last_sync_at, last_sync_status, timezone, ingest_token')
     .maybeSingle();
 
   const collectorUrl = process.env.NEXT_PUBLIC_COLLECTOR_URL ?? 'https://collect.pulse.app';
@@ -51,9 +51,13 @@ export default async function SetupPage() {
           e envia sessões para o Pulse. IP e cidade são resolvidos no servidor — o
           navegador nunca envia localização.
         </p>
-        {agency
-          ? <Snippet agencyId={agency.id} collectorUrl={collectorUrl} />
-          : <p className="text-sm text-rose-300">Agência não encontrada.</p>}
+        {agency?.ingest_token ? (
+          <Snippet agencyId={agency.id} token={agency.ingest_token} collectorUrl={collectorUrl} />
+        ) : (
+          <p className="text-sm text-ink-dim">
+            Só o owner e os admins da agência podem ver o snippet.
+          </p>
+        )}
       </Card>
 
       {me?.role === 'owner' && (
