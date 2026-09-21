@@ -1,10 +1,10 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from './env.js';
 import { log } from './log.js';
 
-let transport: nodemailer.Transporter | null = null;
+let transport: Transporter | null = null;
 
-function get(): nodemailer.Transporter | null {
+function get(): Transporter | null {
   if (!env.smtp.url) return null;
   if (!transport) transport = nodemailer.createTransport(env.smtp.url);
   return transport;

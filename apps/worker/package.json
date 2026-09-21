@@ -15,8 +15,5 @@
     "bullmq": "^5.34.0",
     "ioredis": "^5.4.2",
     "nodemailer": "^10.0.10"
-  },
-  "devDependencies": {
-    "@types/nodemailer": "^6.4.17"
   }
 }

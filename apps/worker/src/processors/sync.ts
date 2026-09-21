@@ -38,11 +38,6 @@ export async function bootstrapAgency(job: BootstrapJob): Promise<void> {
     );
   }
 
-  // The agency name comes back on the locations payload before anything else does.
-  await query(`update agencies set name = coalesce(nullif($2,''), name) where id = $1`, [
-    agency.id, locations[0]?.name ? `Agência ${agency.ghl_company_id}` : '',
-  ]);
-
   await syncAgency({ agencyId: agency.id });
 }
 

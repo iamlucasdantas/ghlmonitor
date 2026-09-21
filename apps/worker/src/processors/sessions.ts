@@ -57,12 +57,16 @@ export async function processScriptBatch(job: ScriptBatchJob): Promise<void> {
 
     const sessions = buildSessions(events);
     for (const s of sessions) {
+      // One batch can carry several users of the same sub-account, so the profile
+      // fields have to come from that user's own events — otherwise the first user in
+      // the batch lends their name and e-mail to everyone else in it.
+      const own = events.filter((e) => e.userId === s.userId);
       const ghlUserRowId = await upsertGhlUser({
         locationId: location.id,
         ghlUserId: s.userId,
-        name: firstValue(events, 'userName'),
-        email: firstValue(events, 'userEmail'),
-        role: firstValue(events, 'role'),
+        name: firstValue(own, 'userName'),
+        email: firstValue(own, 'userEmail'),
+        role: firstValue(own, 'role'),
         pending: true,
       });
 
