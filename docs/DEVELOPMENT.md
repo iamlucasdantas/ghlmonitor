@@ -20,6 +20,15 @@ for f in db/migrations/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
 `notice` quando não existe — as funções `purge_events_raw()` e `anonymize_session_ips()`
 ficam criadas de todo jeito.
 
+## Ver o painel com dados
+
+```bash
+scripts/demo.sh && npm run dev:web
+```
+
+Sobe um Supabase local com 18 subcontas fictícias e os scores calculados pelo motor.
+Detalhes e os três logins em [DEMO.md](DEMO.md).
+
 ## Testes
 
 ```bash
@@ -29,10 +38,20 @@ npm run test:db           # migrations + 28 asserts de RLS
 npm run test:all          # unitários + integração
 ```
 
-`npm run test:integration` sobe um Postgres e um Redis temporários sozinho (ou usa o
-`DATABASE_URL` / `REDIS_URL` que você passar), aplica as migrations e exercita
-`/collect` de verdade: lote assinado, lote adulterado, token de outra agência, beacon
-sem assinatura e evento malformado.
+`npm run test:integration` consegue Postgres e Redis de três formas, nesta ordem: o que
+você passar em `DATABASE_URL` / `REDIS_URL`, o `docker-compose.yml` do repositório, ou
+binários nativos quando roda como root (o caso do CI Linux). Depois aplica as migrations
+e exercita `/collect` de verdade: lote assinado, lote adulterado, token de outra agência,
+beacon sem assinatura e evento malformado.
+
+Se preferir controlar os serviços você mesmo:
+
+```bash
+docker compose up -d
+export DATABASE_URL="postgres://postgres:pulse@localhost:55432/postgres"
+export REDIS_URL="redis://localhost:56379"
+npm run test:db && npm run test:integration
+```
 
 `scripts/test-db.sh` cria um banco temporário, aplica todas as migrations, carrega
 fixtures com duas agências e verifica os critérios de aceite do §16 — entre eles que um
