@@ -55,6 +55,12 @@ Duas coisas que parecem bug e não são:
 
 A distribuição fica em 28% entre risco e crítico, abaixo da meta de ≤30% do §3.
 
+## Publicar com URL pública
+
+O `demo.sh` é local. Para deixar o painel no ar num endereço que outras pessoas abrem,
+veja [DEPLOY.md](DEPLOY.md) — Supabase e Vercel no plano gratuito, sem coletor nem
+worker.
+
 ## Recalcular
 
 ```bash

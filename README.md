@@ -22,7 +22,7 @@ agência, visão de subconta e controle de acesso por papel.
 | `apps/web` | Painel Next.js |
 | `tracking/pulse.js` | Script injetado no app white-label |
 | `db/seed` | Dados de demonstração, 18 perfis de subconta |
-| `docs/` | [Arquitetura](docs/ARCHITECTURE.md) · [Demo](docs/DEMO.md) · [Conectar a HighLevel](docs/CONECTAR-HIGHLEVEL.md) · [Desenvolvimento](docs/DEVELOPMENT.md) · [Operação](docs/OPERATIONS.md) |
+| `docs/` | [Arquitetura](docs/ARCHITECTURE.md) · [Demo local](docs/DEMO.md) · [Deploy público](docs/DEPLOY.md) · [Conectar a HighLevel](docs/CONECTAR-HIGHLEVEL.md) · [Desenvolvimento](docs/DEVELOPMENT.md) · [Operação](docs/OPERATIONS.md) |
 
 ## Score
 
@@ -71,8 +71,11 @@ scripts/demo.sh && npm run dev:web
 Sobe um Supabase local com 18 subcontas fictícias cujos perfis exercitam cada regra do
 score — inclusive as exceções — e calcula os scores com o motor de verdade. Três logins
 (owner, admin sem faturamento, gerente) mostram a RLS mudando o que aparece na tela.
-Detalhes em [docs/DEMO.md](docs/DEMO.md). Para ligar uma agência HighLevel de verdade,
-com OAuth, webhooks e o script no ar, veja
+Detalhes em [docs/DEMO.md](docs/DEMO.md).
+
+Para publicar com URL pública — Supabase e Vercel, plano gratuito, sem precisar do
+coletor nem do worker — veja [docs/DEPLOY.md](docs/DEPLOY.md). Para ligar uma agência
+HighLevel de verdade, com OAuth, webhooks e o script no ar, veja
 [docs/CONECTAR-HIGHLEVEL.md](docs/CONECTAR-HIGHLEVEL.md).
 
 ## Testes
