@@ -9,30 +9,28 @@
 --
 -- Idempotente: apaga e recria a agência de demonstração a cada execução.
 
-\set ON_ERROR_STOP on
-
+-- SQL puro, sem meta-comandos do psql: este arquivo também é aplicado pela CLI do
+-- Supabase (supabase db reset), que não interpreta \set nem \echo.
 begin;
 
-\set agency_id '''0de3a8b2-1c4d-4f6e-8a90-000000000001'''
-
-delete from agencies where id = :agency_id;
+delete from agencies where id = '0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid;
 
 insert into agencies (id, ghl_company_id, name, timezone, hmac_secret, install_status,
                       last_script_event_at, last_sync_at, last_sync_status)
-values (:agency_id, 'demo-company', 'Magnetic Funnels (demo)', 'America/Sao_Paulo',
+values ('0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid, 'demo-company', 'Magnetic Funnels (demo)', 'America/Sao_Paulo',
         'demo-ingest-token-nao-use-em-producao', 'active',
         now() - interval '3 minutes', now() - interval '6 hours', 'ok');
 
-select seed_default_alert_rules(:agency_id);
+select seed_default_alert_rules('0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid);
 
 -- ------------------------------------------------------------------ equipe
 
 insert into agency_users (id, agency_id, auth_user_id, email, name, role, accepted_at) values
-  ('0de3a8b2-0000-4000-8000-000000000001', :agency_id, null,
+  ('0de3a8b2-0000-4000-8000-000000000001', '0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid, null,
    'owner@demo.pulse', 'Lucas (owner)', 'owner', now()),
-  ('0de3a8b2-0000-4000-8000-000000000002', :agency_id, null,
+  ('0de3a8b2-0000-4000-8000-000000000002', '0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid, null,
    'admin@demo.pulse', 'Camila (admin)', 'admin', now()),
-  ('0de3a8b2-0000-4000-8000-000000000003', :agency_id, null,
+  ('0de3a8b2-0000-4000-8000-000000000003', '0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid, null,
    'gerente@demo.pulse', 'Rafael (gerente)', 'manager', now());
 
 -- O admin fica sem faturamento, para dar o que ver no toggle de permissão (RF-07.3).
@@ -98,7 +96,7 @@ insert into demo_profile values
 
 insert into locations (agency_id, ghl_location_id, name, niche, plan_name, plan_value,
                        manager_id, installed_at, first_data_at)
-select :agency_id, 'demo-' || p.slug, p.name, p.niche, p.plan_name, p.plan_value,
+select '0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid, 'demo-' || p.slug, p.name, p.niche, p.plan_name, p.plan_value,
        -- metade das subcontas fica com o gerente, para o filtro ter o que filtrar
        case when row_number() over (order by p.slug) % 2 = 0
             then '0de3a8b2-0000-4000-8000-000000000003'::uuid end,
@@ -112,7 +110,7 @@ select :agency_id, 'demo-' || p.slug, p.name, p.niche, p.plan_name, p.plan_value
 -- gerente entra no painel e não enxerga nada.
 insert into user_location_access (agency_user_id, location_id)
 select l.manager_id, l.id from locations l
- where l.agency_id = :agency_id and l.manager_id is not null;
+ where l.agency_id = '0de3a8b2-1c4d-4f6e-8a90-000000000001'::uuid and l.manager_id is not null;
 
 -- -------------------------------------------------------------- usuários
 
@@ -221,8 +219,3 @@ where u.last_seen_at is not null
   and u.last_seen_at - (n * 2 || ' days')::interval > now() - interval '30 days';
 
 commit;
-
-\echo ''
-\echo 'Seed aplicado. Agência de demonstração: 0de3a8b2-1c4d-4f6e-8a90-000000000001'
-\echo 'Os scores ainda NÃO existem — rode o backfill para o motor calculá-los:'
-\echo '  node apps/worker/dist/cli.js backfill --agency 0de3a8b2-1c4d-4f6e-8a90-000000000001'

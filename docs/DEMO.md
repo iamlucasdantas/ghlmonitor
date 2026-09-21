@@ -8,7 +8,8 @@ scripts/demo.sh
 npm run dev:web        # http://localhost:3000
 ```
 
-Requisitos: Docker rodando e a CLI do Supabase (`npm i -g supabase`). O painel depende
+Requisitos: Node 22+, Docker rodando e a CLI do Supabase (`npm i -g supabase`). **Não
+precisa de `psql`** — as migrations e o seed são aplicados pela própria CLI do Supabase. O painel depende
 de Auth e PostgREST, então a demo usa o Supabase local — não o `docker-compose.yml`
 deste repositório, que serve aos testes.
 

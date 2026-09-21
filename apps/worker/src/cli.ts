@@ -43,6 +43,7 @@ pulse — ferramentas de operação do worker
   backfill --agency <uuid> [--days 45]           Recalcula os últimos N dias, em ordem
   alerts   --agency <uuid> [--date YYYY-MM-DD]   Avalia as regras de alerta
   agencies                                       Lista as agências instaladas
+  link-auth-users                                Liga agency_users a auth.users pelo e-mail
 
 O backfill roda dia a dia, do mais antigo para o mais novo, porque a confirmação de
 tier depende do tier do dia anterior (RF-04.3) — rodar fora de ordem produz histórico
@@ -88,6 +89,24 @@ async function main(): Promise<void> {
         await scoreAgency({ agencyId, date: d });
       }
       await report(agencyId, today);
+      break;
+    }
+
+    case 'link-auth-users': {
+      // O Supabase Auth cria a linha em auth.users; o Pulse precisa ligá-la ao
+      // agency_users correspondente. Feito aqui, em vez de psql, para que o setup
+      // não exija um cliente Postgres instalado na máquina.
+      const linked = await query<{ email: string }>(
+        `update agency_users au
+            set auth_user_id = u.id,
+                accepted_at = coalesce(au.accepted_at, now())
+           from auth.users u
+          where u.email = au.email
+            and (au.auth_user_id is null or au.auth_user_id <> u.id)
+        returning au.email`,
+      );
+      if (linked.length === 0) console.log('nenhum usuário novo para ligar');
+      for (const r of linked) console.log(`ligado: ${r.email}`);
       break;
     }
 
