@@ -1,0 +1,25 @@
+{
+  "name": "pulse",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pulse — activity & churn-risk tracking for HighLevel sub-accounts",
+  "workspaces": [
+    "packages/*",
+    "apps/collector",
+    "apps/worker"
+  ],
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "npm run build -w @pulse/core && npm run build -w @pulse/collector && npm run build -w @pulse/worker",
+    "typecheck": "tsc -b packages/core apps/collector apps/worker",
+    "test": "npm run test -w @pulse/core",
+    "dev:collector": "npm run dev -w @pulse/collector",
+    "dev:worker": "npm run dev -w @pulse/worker",
+    "dev:web": "npm run dev -w apps/web"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
