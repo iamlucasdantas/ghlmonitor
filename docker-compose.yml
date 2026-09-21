@@ -1,0 +1,40 @@
+# Postgres e Redis descartáveis para rodar os testes em qualquer sistema operacional.
+#
+#   docker compose up -d
+#   export DATABASE_URL="postgres://postgres:pulse@localhost:55432/postgres"
+#   export REDIS_URL="redis://localhost:56379"
+#   npm run test:db && npm run test:integration
+#
+# As portas são deslocadas (55432 / 56379) para não colidir com um Postgres ou Redis
+# já instalado na máquina.
+#
+# Para ver o painel com dados, use scripts/demo.sh — ele sobe o Supabase local, que é
+# o que o frontend precisa (Auth + PostgREST), e não este compose.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: pulse
+      POSTGRES_DB: postgres
+    ports:
+      - '55432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      # Banco de teste é descartável; em tmpfs roda mais rápido e não deixa lixo.
+      - /var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--save', '', '--appendonly', 'no']
+    ports:
+      - '56379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 3s
+      retries: 30
