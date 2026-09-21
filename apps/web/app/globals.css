@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+/* Dark by default, to match the tool it replaces (§10). */
+@theme {
+  --color-surface: #0b0f17;
+  --color-panel: #121826;
+  --color-panel-2: #171f30;
+  --color-edge: #232c42;
+  --color-ink: #e6ecf8;
+  --color-ink-dim: #93a1bd;
+}
+
+html, body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dense tables are the point of this tool; keep the rhythm tight but legible. */
+table { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

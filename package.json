@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/*",
     "apps/collector",
-    "apps/worker"
+    "apps/worker",
+    "apps/web"
   ],
   "engines": {
     "node": ">=22"
