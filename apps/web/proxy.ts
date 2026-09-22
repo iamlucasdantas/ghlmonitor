@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { supabaseEnv } from '@/lib/supabase/env';
 
 /**
  * Refreshes the Supabase session cookie and keeps unauthenticated visitors out of the
@@ -9,9 +10,22 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function proxy(req: NextRequest) {
   const res = NextResponse.next({ request: req });
 
+  /* Sem configuração, manda todo mundo para /login, que explica o que falta. O
+     redirect precisa acontecer aqui: layout e página renderizam em paralelo, então
+     um `redirect()` dentro do layout de /agency não impede a página de rodar e
+     estourar no cliente do Supabase — que era o erro em tela. */
+  const env = supabaseEnv();
+  if (!env) {
+    if (req.nextUrl.pathname.startsWith('/login')) return res;
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    url.search = '';
+    return NextResponse.redirect(url);
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.url,
+    env.anonKey,
     {
       cookies: {
         getAll: () => req.cookies.getAll(),

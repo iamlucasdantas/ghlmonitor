@@ -10,8 +10,9 @@
  * late sync, rebuilding history when the score weights change (§15 "painel de
  * calibração"), and populating a demo database with scores the real engine produced.
  */
+import { readFile } from 'node:fs/promises';
 import { addDays, toDay } from '@pulse/core';
-import { closeDb, query } from '@pulse/db';
+import { closeDb, db, query } from '@pulse/db';
 import { log } from './log.js';
 import { dispatchAlerts } from './processors/alerts.js';
 import { scoreAgency } from './processors/score.js';
@@ -21,6 +22,7 @@ interface Args {
   agency?: string;
   date?: string;
   days?: number;
+  file?: string;
 }
 
 function parseArgs(argv: string[]): Args {
@@ -32,6 +34,7 @@ function parseArgs(argv: string[]): Args {
     if (flag === '--agency' && value) { args.agency = value; i++; }
     else if (flag === '--date' && value) { args.date = value; i++; }
     else if (flag === '--days' && value) { args.days = Number(value); i++; }
+    else if (flag === '--file' && value) { args.file = value; i++; }
   }
   return args;
 }
@@ -43,6 +46,8 @@ pulse — ferramentas de operação do worker
   backfill --agency <uuid> [--days 45]           Recalcula os últimos N dias, em ordem
   alerts   --agency <uuid> [--date YYYY-MM-DD]   Avalia as regras de alerta
   agencies                                       Lista as agências instaladas
+  link-auth-users                                Liga agency_users a auth.users pelo e-mail
+  seed-demo [--file db/seed/demo.sql]            Aplica o seed de demonstração
 
 O backfill roda dia a dia, do mais antigo para o mais novo, porque a confirmação de
 tier depende do tier do dia anterior (RF-04.3) — rodar fora de ordem produz histórico
@@ -88,6 +93,35 @@ async function main(): Promise<void> {
         await scoreAgency({ agencyId, date: d });
       }
       await report(agencyId, today);
+      break;
+    }
+
+    case 'seed-demo': {
+      // `supabase db reset` só aplica o seed na stack local. Para um projeto na
+      // nuvem — ou qualquer Postgres — o seed roda por aqui, pelo mesmo cliente que
+      // o worker usa, sem exigir psql instalado.
+      const file = args.file ?? 'db/seed/demo.sql';
+      const sql = await readFile(file, 'utf8');
+      await db().query(sql);
+      console.log(`seed aplicado: ${file}`);
+      break;
+    }
+
+    case 'link-auth-users': {
+      // O Supabase Auth cria a linha em auth.users; o Pulse precisa ligá-la ao
+      // agency_users correspondente. Feito aqui, em vez de psql, para que o setup
+      // não exija um cliente Postgres instalado na máquina.
+      const linked = await query<{ email: string }>(
+        `update agency_users au
+            set auth_user_id = u.id,
+                accepted_at = coalesce(au.accepted_at, now())
+           from auth.users u
+          where u.email = au.email
+            and (au.auth_user_id is null or au.auth_user_id <> u.id)
+        returning au.email`,
+      );
+      if (linked.length === 0) console.log('nenhum usuário novo para ligar');
+      for (const r of linked) console.log(`ligado: ${r.email}`);
       break;
     }
 

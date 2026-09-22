@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 # Sobe um Pulse completo com dados fictícios, sem HighLevel nenhum.
 #
-#   scripts/demo.sh          # sobe, popula e calcula os scores
-#   scripts/demo.sh --reset  # recria o banco do zero antes
+#   scripts/demo.sh
 #
-# Usa o Supabase local (supabase start), e não o docker-compose.yml deste repositório,
-# porque o painel depende de Auth e PostgREST — um Postgres puro não serve. O
-# docker-compose.yml existe para os testes.
-#
-# Requisitos: Docker em execução e a CLI do Supabase
+# Requisitos: Node 22+, Docker em execução e a CLI do Supabase
 #   npm i -g supabase   (ou brew install supabase/tap/supabase)
+#
+# Não exige psql: as migrations e o seed são aplicados pela própria CLI do Supabase,
+# e o que sobra de SQL roda pelo cliente Node do projeto. Usa o Supabase local em vez
+# do docker-compose.yml daqui porque o painel precisa de Auth e PostgREST — um
+# Postgres puro não serve. O compose existe para os testes.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 AGENCY_ID='0de3a8b2-1c4d-4f6e-8a90-000000000001'
-DEMO_EMAIL='owner@demo.pulse'
 DEMO_PASSWORD='pulse-demo-1234'
+EMAILS=(owner@demo.pulse admin@demo.pulse gerente@demo.pulse)
 
 cd "$ROOT"
 
@@ -31,14 +31,32 @@ docker info >/dev/null 2>&1 || {
 
 [ -f supabase/config.toml ] || {
   echo "→ inicializando o projeto Supabase local"
-  supabase init >/dev/null
+  supabase init
 }
 
-echo "→ subindo o Supabase local (na primeira vez ele baixa as imagens; demora)"
-supabase start >/dev/null
+# A CLI aplica o que está em supabase/migrations, em ordem de nome. As migrations
+# canônicas vivem em db/migrations; aqui elas são copiadas com um prefixo de
+# timestamp, que é o formato que a CLI espera. Regenerado a cada execução, para que
+# db/migrations continue sendo a única fonte de verdade.
+echo "→ preparando migrations para a CLI"
+mkdir -p supabase/migrations
+rm -f supabase/migrations/*_pulse_*.sql
+i=0
+for f in db/migrations/*.sql; do
+  i=$((i + 1))
+  printf -v stamp '2026010100%04d' "$i"
+  cp "$f" "supabase/migrations/${stamp}_pulse_$(basename "$f")"
+done
+cp db/seed/demo.sql supabase/seed.sql
 
-# `supabase status -o json` é a forma suportada de descobrir as chaves e as portas,
-# que mudam conforme a versão da CLI — não dá para fixar no script.
+echo "→ subindo o Supabase local (na primeira vez ele baixa as imagens; demora)"
+supabase start
+
+echo "→ aplicando migrations e seed"
+supabase db reset
+
+# `supabase status -o json` é a forma suportada de descobrir chaves e portas, que
+# mudam conforme a versão da CLI — não dá para fixar no script.
 STATUS="$(supabase status -o json)"
 json() {
   printf '%s' "$STATUS" | node -e "
@@ -54,69 +72,72 @@ ANON_KEY="$(json ANON_KEY)"
 SERVICE_KEY="$(json SERVICE_ROLE_KEY)"
 DB_URL="$(json DB_URL)"
 
-[ -n "$DB_URL" ] || { echo "não consegui ler a DB_URL do supabase status" >&2; exit 1; }
-
-if [ "${1:-}" = "--reset" ]; then
-  echo "→ recriando o banco"
-  supabase db reset --no-seed >/dev/null 2>&1 || true
-fi
-
-echo "→ aplicando migrations"
-for f in db/migrations/*.sql; do
-  psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+for name in API_URL ANON_KEY SERVICE_KEY DB_URL; do
+  [ -n "${!name}" ] || {
+    echo "não consegui ler $name de 'supabase status -o json'." >&2
+    echo "Rode o comando à mão para ver o que ele devolveu." >&2
+    exit 1
+  }
 done
 
-echo "→ populando dados de demonstração"
-psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f db/seed/demo.sql
-
 echo "→ criando os logins de demonstração"
-# Os usuários de Auth precisam existir antes de serem ligados a agency_users; a API de
-# admin é a rota suportada (inserir direto em auth.users quebra entre versões da CLI).
-# São três para dar o que comparar: owner vê tudo, admin está sem faturamento e o
-# gerente só enxerga as subcontas atribuídas a ele.
-for email in "$DEMO_EMAIL" admin@demo.pulse gerente@demo.pulse; do
-  curl -s -X POST "$API_URL/auth/v1/admin/users" \
+# Três papéis para dar o que comparar: owner vê tudo, admin está sem permissão de
+# faturamento e o gerente só enxerga as subcontas atribuídas a ele.
+for email in "${EMAILS[@]}"; do
+  curl -sS -X POST "$API_URL/auth/v1/admin/users" \
     -H "apikey: $SERVICE_KEY" \
     -H "Authorization: Bearer $SERVICE_KEY" \
     -H 'Content-Type: application/json' \
     -d "{\"email\":\"$email\",\"password\":\"$DEMO_PASSWORD\",\"email_confirm\":true}" \
-    >/dev/null || true
+    -o /dev/null || echo "  (aviso: não criei $email; talvez já exista)"
 done
 
-psql "$DB_URL" -v ON_ERROR_STOP=1 -q -c "
-  update agency_users au
-     set auth_user_id = u.id, accepted_at = coalesce(au.accepted_at, now())
-    from auth.users u
-   where u.email = au.email;"
+echo "→ compilando"
+npm run build -w @pulse/core
+npm run build -w @pulse/db
+npm run build -w @pulse/worker
 
-echo "→ compilando o worker"
-npm run build -w @pulse/core >/dev/null
-npm run build -w @pulse/db >/dev/null
-npm run build -w @pulse/worker >/dev/null
+export DATABASE_URL="$DB_URL"
+export LOG_LEVEL="${LOG_LEVEL:-warn}"
+
+echo "→ ligando os logins às contas do Pulse"
+node apps/worker/dist/cli.js link-auth-users
 
 echo "→ calculando os scores com o motor de verdade (45 dias)"
-DATABASE_URL="$DB_URL" LOG_LEVEL=warn node apps/worker/dist/cli.js backfill --agency "$AGENCY_ID" --days 45
+node apps/worker/dist/cli.js backfill --agency "$AGENCY_ID" --days 45
+
+# Num Codespace o navegador não alcança o localhost do contêiner: cada porta ganha
+# uma URL encaminhada. O cliente Supabase roda no navegador, então precisa da URL
+# encaminhada da 54321, não da local.
+PUBLIC_API_URL="$API_URL"
+if [ -n "${CODESPACE_NAME:-}" ] && [ -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]; then
+  PUBLIC_API_URL="https://${CODESPACE_NAME}-54321.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  echo "→ Codespace detectado; o painel vai falar com o Supabase em $PUBLIC_API_URL"
+  echo "  (a porta 54321 precisa estar pública na aba Ports)"
+fi
 
 cat > apps/web/.env.local <<ENV
-NEXT_PUBLIC_SUPABASE_URL=$API_URL
+NEXT_PUBLIC_SUPABASE_URL=$PUBLIC_API_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY
 NEXT_PUBLIC_COLLECTOR_URL=http://localhost:3001
+# Liga o login por senha na tela de entrada. Só a demo usa isso; uma instalação
+# real autentica por magic link ou Google.
+NEXT_PUBLIC_DEMO_MODE=1
 ENV
 
 cat <<EOF
 
-Pronto. Subiu com 18 subcontas fictícias e os scores calculados pelo motor.
+Pronto. 18 subcontas fictícias, scores calculados pelo motor.
 
   npm run dev:web     →  http://localhost:3000
 
-Todos os logins usam a senha: $DEMO_PASSWORD
+Senha de todos os logins: $DEMO_PASSWORD
 
-  $DEMO_EMAIL      owner — vê tudo
-  admin@demo.pulse      admin sem permissão de faturamento: MRR e receita somem
-  gerente@demo.pulse    gerente — só as subcontas atribuídas a ele
+  owner@demo.pulse      vê as 18 subcontas, com plano e faturamento
+  admin@demo.pulse      mesmo alcance, sem permissão de billing: receita some
+  gerente@demo.pulse    só as 9 subcontas atribuídas a ele
 
-Vale entrar com os três: é a forma mais rápida de ver a RLS e os toggles de permissão
-mudando o que aparece na tela.
+Entre com os três: é a forma mais rápida de ver a RLS mudando o que aparece.
 
 Derrubar tudo:  supabase stop
 EOF
