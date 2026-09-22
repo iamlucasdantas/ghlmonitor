@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { requireSupabaseEnv, supabaseEnv } from './env';
 
 /**
  * Every query from a page goes through this client, which carries the user's own JWT.
@@ -9,9 +10,10 @@ import { cookies } from 'next/headers';
  */
 export async function supabaseServer() {
   const store = await cookies();
+  const env = requireSupabaseEnv();
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.url,
+    env.anonKey,
     {
       cookies: {
         getAll: () => store.getAll(),
@@ -39,6 +41,8 @@ export interface CurrentUser {
 
 /** Resolves the signed-in staff member, or null when there is no session. */
 export async function currentUser(): Promise<CurrentUser | null> {
+  // Sem configuração ninguém está logado — e quem chama já trata o null.
+  if (!supabaseEnv()) return null;
   const db = await supabaseServer();
   const { data: auth } = await db.auth.getUser();
   if (!auth.user) return null;

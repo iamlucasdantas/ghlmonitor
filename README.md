@@ -21,7 +21,8 @@ agência, visão de subconta e controle de acesso por papel.
 | `apps/worker` | Filas, sync noturno, score diário, alertas |
 | `apps/web` | Painel Next.js |
 | `tracking/pulse.js` | Script injetado no app white-label |
-| `docs/` | [Arquitetura](docs/ARCHITECTURE.md) · [Desenvolvimento](docs/DEVELOPMENT.md) · [Operação](docs/OPERATIONS.md) |
+| `db/seed` | Dados de demonstração, 18 perfis de subconta |
+| `docs/` | [Arquitetura](docs/ARCHITECTURE.md) · [Demo local](docs/DEMO.md) · [Deploy público](docs/DEPLOY.md) · [Conectar a HighLevel](docs/CONECTAR-HIGHLEVEL.md) · [Desenvolvimento](docs/DEVELOPMENT.md) · [Operação](docs/OPERATIONS.md) |
 
 ## Score
 
@@ -60,6 +61,26 @@ heartbeat só é emitido com a aba **visível** e algum input nos últimos 60 se
 tempo ativo é heartbeat válido × 30 s — nunca relógio de parede. Menos de 2 heartbeats
 válidos é gravado com `counted = false` e não chega a painel nem ao score. É isso que
 acaba com a subconta de "10 sessões, 0 min".
+
+## Ver funcionando
+
+Sem instalar nada: no GitHub, **Code → Codespaces → Create codespace**, e lá dentro:
+
+```bash
+scripts/demo.sh && npm run dev:web
+```
+
+Na sua máquina, os mesmos dois comandos, com Docker e a CLI do Supabase instalados.
+
+Sobe um Supabase local com 18 subcontas fictícias cujos perfis exercitam cada regra do
+score — inclusive as exceções — e calcula os scores com o motor de verdade. Três logins
+(owner, admin sem faturamento, gerente) mostram a RLS mudando o que aparece na tela.
+Detalhes em [docs/DEMO.md](docs/DEMO.md).
+
+Para publicar com URL pública — Supabase e Vercel, plano gratuito, sem precisar do
+coletor nem do worker — veja [docs/DEPLOY.md](docs/DEPLOY.md). Para ligar uma agência
+HighLevel de verdade, com OAuth, webhooks e o script no ar, veja
+[docs/CONECTAR-HIGHLEVEL.md](docs/CONECTAR-HIGHLEVEL.md).
 
 ## Testes
 

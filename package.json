@@ -22,7 +22,8 @@
     "build:script": "esbuild tracking/pulse.js --minify --target=es2015 --outfile=tracking/pulse.min.js && node scripts/check-script-size.mjs",
     "test:db": "scripts/test-db.sh",
     "test:integration": "scripts/test-integration.sh",
-    "test:all": "npm test && npm run test:integration"
+    "test:all": "npm test && npm run test:integration",
+    "demo": "scripts/demo.sh"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
