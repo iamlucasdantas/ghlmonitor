@@ -64,9 +64,13 @@ acaba com a subconta de "10 sessões, 0 min".
 
 ## Ver funcionando
 
+Sem instalar nada: no GitHub, **Code → Codespaces → Create codespace**, e lá dentro:
+
 ```bash
 scripts/demo.sh && npm run dev:web
 ```
+
+Na sua máquina, os mesmos dois comandos, com Docker e a CLI do Supabase instalados.
 
 Sobe um Supabase local com 18 subcontas fictícias cujos perfis exercitam cada regra do
 score — inclusive as exceções — e calcula os scores com o motor de verdade. Três logins

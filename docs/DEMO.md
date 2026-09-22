@@ -13,7 +13,26 @@ precisa de `psql`** — as migrations e o seed são aplicados pela própria CLI 
 de Auth e PostgREST, então a demo usa o Supabase local — não o `docker-compose.yml`
 deste repositório, que serve aos testes.
 
+## Abrir sem instalar nada: GitHub Codespaces
+
+No repositório, **Code → Codespaces → Create codespace**. O `.devcontainer` já traz
+Node 22, Docker e a CLI do Supabase. Quando abrir o terminal:
+
+```bash
+scripts/demo.sh
+npm run dev:web
+```
+
+O Codespace encaminha a porta 3000 e abre o painel no navegador. Na aba **Ports**,
+marque a **54321 como Public** — o cliente Supabase roda no seu navegador e precisa
+alcançá-la; o `demo.sh` já escreve a URL encaminhada no `.env.local`.
+
 ## Os três logins
+
+O painel autentica por magic link e Google (PRD §13). **O ambiente de demonstração
+liga um login por senha**, via `NEXT_PUBLIC_DEMO_MODE=1` no `.env.local` — sem isso,
+entrar exigiria caçar o magic link no mail catcher local (Inbucket, porta 54324) só
+para ver a tela. A flag é de build: numa instalação real o campo de senha não existe.
 
 Senha `pulse-demo-1234` para todos. Vale entrar com os três: é a forma mais rápida de
 ver a RLS e os toggles de permissão mudando o que aparece na tela.

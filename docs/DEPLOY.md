@@ -94,12 +94,17 @@ Em <https://vercel.com/new>, importe o repositório `ghlmonitor`.
 | Framework | Next.js (detecta sozinho) |
 | Branch | a que você quer publicar |
 
-Em **Environment Variables**, só duas:
+Em **Environment Variables**:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL      = <Project URL>
 NEXT_PUBLIC_SUPABASE_ANON_KEY = <anon public>
+NEXT_PUBLIC_DEMO_MODE         = 1
 ```
+
+A terceira liga o login por senha na tela de entrada. O painel autentica por magic
+link e Google (PRD §13); sem essa flag não há campo de senha e os três logins de
+demonstração ficam inacessíveis. **Numa instalação real, não defina essa variável.**
 
 **Deploy.** Sai uma URL tipo `https://ghlmonitor.vercel.app`.
 
@@ -115,7 +120,8 @@ Abra a URL e entre com `owner@demo.pulse` / `pulse-demo-1234`. Os outros dois lo
 mudando a tela.
 
 **Isto é um ambiente de demonstração público.** Os três logins e a senha estão neste
-documento, então qualquer pessoa com a URL entra. Não coloque dado de cliente aqui.
+documento e o `NEXT_PUBLIC_DEMO_MODE` deixa o campo de senha à mostra, então qualquer
+pessoa com a URL entra. Não coloque dado de cliente aqui.
 
 ---
 

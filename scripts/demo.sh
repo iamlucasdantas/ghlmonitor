@@ -106,10 +106,23 @@ node apps/worker/dist/cli.js link-auth-users
 echo "→ calculando os scores com o motor de verdade (45 dias)"
 node apps/worker/dist/cli.js backfill --agency "$AGENCY_ID" --days 45
 
+# Num Codespace o navegador não alcança o localhost do contêiner: cada porta ganha
+# uma URL encaminhada. O cliente Supabase roda no navegador, então precisa da URL
+# encaminhada da 54321, não da local.
+PUBLIC_API_URL="$API_URL"
+if [ -n "${CODESPACE_NAME:-}" ] && [ -n "${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-}" ]; then
+  PUBLIC_API_URL="https://${CODESPACE_NAME}-54321.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}"
+  echo "→ Codespace detectado; o painel vai falar com o Supabase em $PUBLIC_API_URL"
+  echo "  (a porta 54321 precisa estar pública na aba Ports)"
+fi
+
 cat > apps/web/.env.local <<ENV
-NEXT_PUBLIC_SUPABASE_URL=$API_URL
+NEXT_PUBLIC_SUPABASE_URL=$PUBLIC_API_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY
 NEXT_PUBLIC_COLLECTOR_URL=http://localhost:3001
+# Liga o login por senha na tela de entrada. Só a demo usa isso; uma instalação
+# real autentica por magic link ou Google.
+NEXT_PUBLIC_DEMO_MODE=1
 ENV
 
 cat <<EOF

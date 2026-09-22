@@ -1,0 +1,23 @@
+{
+  "name": "Pulse",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+  "features": {
+    // O demo sobe o Supabase local em contêineres, então o Codespace precisa de
+    // Docker dentro dele.
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "npm install && npm i -g supabase",
+  "forwardPorts": [3000, 54321, 54323, 54324],
+  "portsAttributes": {
+    "3000": { "label": "Painel Pulse", "onAutoForward": "notify" },
+    "54321": { "label": "Supabase API", "visibility": "public" },
+    "54323": { "label": "Supabase Studio" },
+    "54324": { "label": "Inbucket (e-mails locais)" }
+  },
+  "hostRequirements": { "cpus": 4, "memory": "8gb", "storage": "32gb" },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "bradlc.vscode-tailwindcss"]
+    }
+  }
+}
